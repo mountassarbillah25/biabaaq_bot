@@ -1,5 +1,6 @@
 import datetime
 import os
+import json
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -7,8 +8,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 #  CONFIG — edit everything in this section freely
 # ============================================================
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")   
-CHAT_ID   = os.environ.get("CHAT_ID")                  
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 # Timezone offset from UTC — Algeria is UTC+1
 TIMEZONE = datetime.timezone(datetime.timedelta(hours=1))
@@ -66,32 +66,61 @@ TASBIH_MESSAGE = (
 )
 
 # ============================================================
+#  SUBSCRIBERS — no need to edit below this line
+# ============================================================
+
+SUBSCRIBERS_FILE = "subscribers.json"
+
+def load_subscribers():
+    if os.path.exists(SUBSCRIBERS_FILE):
+        with open(SUBSCRIBERS_FILE, "r") as f:
+            return set(json.load(f))
+    return set()
+
+def save_subscribers(subscribers):
+    with open(SUBSCRIBERS_FILE, "w") as f:
+        json.dump(list(subscribers), f)
+
+subscribers = load_subscribers()
+
+# ============================================================
 #  BOT LOGIC — no need to edit below this line
 # ============================================================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    if chat_id not in subscribers:
+        subscribers.add(chat_id)
+        save_subscribers(subscribers)
     await update.message.reply_text(WELCOME_MESSAGE)
     await update.message.reply_text(WELCOME_HAWQALA)
 
+async def broadcast(context, text):
+    for chat_id in list(subscribers):
+        try:
+            await context.bot.send_message(chat_id=chat_id, text=text)
+        except Exception:
+            # user blocked the bot or deleted the chat — remove them
+            subscribers.discard(chat_id)
+            save_subscribers(subscribers)
+
 async def send_morning_dhikr(context):
-    await context.bot.send_message(chat_id=CHAT_ID, text=MORNING_DHIKR_MESSAGE)
+    await broadcast(context, MORNING_DHIKR_MESSAGE)
 
 async def send_evening_dhikr(context):
-    await context.bot.send_message(chat_id=CHAT_ID, text=EVENING_DHIKR_MESSAGE)
+    await broadcast(context, EVENING_DHIKR_MESSAGE)
 
 async def send_tasbih(context):
-    await context.bot.send_message(chat_id=CHAT_ID, text=TASBIH_MESSAGE)
+    await broadcast(context, TASBIH_MESSAGE)
 
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # /start command handler
     app.add_handler(CommandHandler("start", start))
 
     jq = app.job_queue
 
-    # Morning dhikr — fixed daily time
     jq.run_daily(
         send_morning_dhikr,
         time=datetime.time(
@@ -102,7 +131,6 @@ def main():
         name="morning_dhikr"
     )
 
-    # Evening dhikr — fixed daily time
     jq.run_daily(
         send_evening_dhikr,
         time=datetime.time(
@@ -113,7 +141,6 @@ def main():
         name="evening_dhikr"
     )
 
-    # Tasbih & hawqala — every N hours
     jq.run_repeating(
         send_tasbih,
         interval=datetime.timedelta(hours=TASBIH_INTERVAL_HOURS),

@@ -1,4 +1,5 @@
 import datetime
+import os
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -6,8 +7,8 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 #  CONFIG — edit everything in this section freely
 # ============================================================
 
-BOT_TOKEN = "8965118800:AAFcl14Hu3Q8sEzBa8BXVy9cKV2qnW2FbDs"   # ⚠️ use the new token from BotFather
-CHAT_ID   = 5514302140                  # your chat ID (integer)
+BOT_TOKEN = os.environ.get("BOT_TOKEN")   
+CHAT_ID   = os.environ.get("CHAT_ID")                  
 
 # Timezone offset from UTC — Algeria is UTC+1
 TIMEZONE = datetime.timezone(datetime.timedelta(hours=1))

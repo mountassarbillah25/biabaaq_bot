@@ -1,12 +1,13 @@
 import datetime
-from telegram.ext import Application, JobQueue
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
 
 # ============================================================
 #  CONFIG — edit everything in this section freely
 # ============================================================
 
-BOT_TOKEN = "8965118800:AAG34Dzuvi7o69fAjshLwVty557rtMqQ3N0"   # from @BotFather
-CHAT_ID   = 5514302140               # your chat/group ID (integer)
+BOT_TOKEN = "8965118800:AAFcl14Hu3Q8sEzBa8BXVy9cKV2qnW2FbDs"   # ⚠️ use the new token from BotFather
+CHAT_ID   = 5514302140                  # your chat ID (integer)
 
 # Timezone offset from UTC — Algeria is UTC+1
 TIMEZONE = datetime.timezone(datetime.timedelta(hours=1))
@@ -24,6 +25,20 @@ EVENING_DHIKR_MINUTE = 0
 TASBIH_INTERVAL_HOURS = 2   # every 2 hours
 
 # ------ Messages -------------------------------------------
+
+WELCOME_MESSAGE = (
+    "السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ 🌿\n\n"
+    "أنا بوت بعبق للأذكار، سأرسل لك:\n\n"
+    "🌅 أذكار الصباح كل يوم الساعة 7:00 صباحاً\n"
+    "🌆 أذكار المساء كل يوم الساعة 6:00 مساءً\n"
+    "🤲 تذكير بالتسبيح والحوقلة كل ساعتين\n\n"
+    "نسأل الله أن يجعلها في ميزان حسناتك 🤍"
+)
+
+WELCOME_HAWQALA = (
+    "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ الْعَلِيِّ الْعَظِيمِ ✨\n\n"
+    "قال عنها النبي ﷺ: «كنز من كنوز الجنة»"
+)
 
 MORNING_DHIKR_MESSAGE = (
     "🌅 أذكار الصباح\n\n"
@@ -53,6 +68,10 @@ TASBIH_MESSAGE = (
 #  BOT LOGIC — no need to edit below this line
 # ============================================================
 
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(WELCOME_MESSAGE)
+    await update.message.reply_text(WELCOME_HAWQALA)
+
 async def send_morning_dhikr(context):
     await context.bot.send_message(chat_id=CHAT_ID, text=MORNING_DHIKR_MESSAGE)
 
@@ -65,6 +84,9 @@ async def send_tasbih(context):
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
+
+    # /start command handler
+    app.add_handler(CommandHandler("start", start))
 
     jq = app.job_queue
 
@@ -94,7 +116,7 @@ def main():
     jq.run_repeating(
         send_tasbih,
         interval=datetime.timedelta(hours=TASBIH_INTERVAL_HOURS),
-        first=datetime.timedelta(seconds=10),  # first run 10s after bot starts
+        first=datetime.timedelta(seconds=10),
         name="tasbih_reminder"
     )
 

@@ -153,7 +153,7 @@ NEW_MESSAGE = (
 #  SUBSCRIBERS — no need to edit below this line
 # ============================================================
 
-SUBSCRIBERS_FILE = "subscribers.json"
+SUBSCRIBERS_FILE = "/data/subscribers.json"
 
 def load_subscribers():
     if os.path.exists(SUBSCRIBERS_FILE):
